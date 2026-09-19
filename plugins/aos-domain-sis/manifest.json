@@ -1,0 +1,25 @@
+{
+  "id": "aos-domain-sis",
+  "name": "AOS Student Information System",
+  "version": "0.1.0",
+  "type": "domain",
+  "author": "AOS Core Team",
+  "description": "Cursos, turmas e matrículas — a fonte de verdade académica.",
+  "dependencies": { "core": "^0.1.0", "aos-core-notify": "^0.1.0" },
+  "events": {
+    "publishes": ["sis.course.created", "sis.student.enrolled", "sis.enrollment.cancelled"],
+    "subscribes": ["auth.user.registered"]
+  },
+  "hooks": { "actions": ["sis.enrollment.after_create"], "filters": ["sis.enrollment.validate"] },
+  "permissions": ["sis.course.create", "sis.course.read", "sis.enrollment.manage"],
+  "database": { "tables": ["sis_courses", "sis_enrollments"] },
+  "api": { "prefix": "/sis" },
+  "frontend": {
+    "routes": ["/sis/*"],
+    "nav": [
+      { "label": "Cursos", "href": "/sis/courses", "icon": "book-open", "roles": ["admin", "coordinator", "teacher", "student"] },
+      { "label": "Matrículas", "href": "/sis/enrollments", "icon": "clipboard-list", "roles": ["admin", "coordinator", "secretary"] }
+    ]
+  },
+  "entrypoint": "src.plugin:register"
+}

@@ -1,0 +1,28 @@
+[project]
+name = "aos-core"
+version = "0.1.0"
+description = "AOS Core — Academic Operational System backend"
+requires-python = ">=3.12"
+readme = "README.md"
+license = { text = "MIT" }
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["src*"]
+
+[tool.fastapi]
+entrypoint = "src.main:app"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

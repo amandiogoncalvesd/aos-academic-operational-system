@@ -1,0 +1,16 @@
+{
+  "id": "aos-core-notify",
+  "name": "AOS Notifications",
+  "version": "0.1.0",
+  "type": "core",
+  "author": "AOS Core Team",
+  "description": "Converte eventos do barramento em notificações in-app (e email/SMS/push no futuro).",
+  "dependencies": { "core": "^0.1.0" },
+  "events": {
+    "publishes": ["notify.notification.created"],
+    "subscribes": ["auth.user.registered", "sis.student.enrolled", "core.plugin.activated"]
+  },
+  "hooks": { "actions": [], "filters": ["notify.message.render"] },
+  "permissions": ["notify.send", "notify.templates.manage"],
+  "entrypoint": "src.plugin:register"
+}
