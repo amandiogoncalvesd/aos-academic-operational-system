@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
+import { probeBackend } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { Logo } from '@/components/Logo';
 import { DEV_ACCOUNTS } from '@/lib/devAccounts';
@@ -13,12 +14,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('Admin123!');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<'probing' | 'live' | 'mock'>('probing');
+
+  useEffect(() => { probeBackend().then((m) => setMode(m ? 'mock' : 'live')); }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setBusy(true); setError(null);
-    try { await login(email, password); router.replace('/dashboard'); }
-    catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível entrar'); }
+    try {
+      if (mode === 'probing') await probeBackend();
+      await login(email, password);
+      router.replace('/dashboard');
+    } catch (err) {
+      console.error('[AOS login]', err);
+      setError(err instanceof Error && err.message ? err.message : 'Não foi possível entrar. Verifique a ligação ao servidor.');
+    }
     finally { setBusy(false); }
   }
 
@@ -46,6 +56,10 @@ export default function LoginPage() {
           <div className="lg:hidden"><Logo /></div>
           <h2 className="mt-6 font-display text-2xl font-semibold tracking-tight lg:mt-0">Entrar</h2>
           <p className="mt-1 text-sm text-muted">G Designer School · Huambo</p>
+          <p className="mt-2 flex items-center gap-2 text-xs text-muted" aria-live="polite">
+            <span className={`h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-emerald-500' : mode === 'mock' ? 'bg-amber-500' : 'bg-faint'}`} />
+            {mode === 'probing' ? 'A verificar servidor…' : mode === 'live' ? 'Ligado ao núcleo AOS' : 'Modo simulado — sem base de dados, dados guardados neste browser'}
+          </p>
           <label className="mt-8 block text-sm font-medium" htmlFor="email">Email</label>
           <input id="email" type="email" autoComplete="username" className="field mt-1.5" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <label className="mt-4 block text-sm font-medium" htmlFor="password">Palavra-passe</label>

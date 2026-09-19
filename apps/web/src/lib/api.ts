@@ -52,7 +52,10 @@ export async function api<T>(path: string, init: RequestInit = {}, retry = true)
     if (!FORCE_MOCK && process.env.NEXT_PUBLIC_ALLOW_MOCK_FALLBACK !== 'false') { setMock(true); const { mockApi } = await import('./mockApi'); return mockApi<T>(path, init); }
     throw e;
   }
-  if (r.status >= 502 && r.status <= 504 && process.env.NEXT_PUBLIC_ALLOW_MOCK_FALLBACK !== 'false') { setMock(true); const { mockApi } = await import('./mockApi'); return mockApi<T>(path, init); }
+  if (r.status >= 500 && process.env.NEXT_PUBLIC_ALLOW_MOCK_FALLBACK !== 'false') {
+    // 5xx do proxy (Vercel sem core) ou do próprio core em baixo → modo simulado
+    setMock(true); const { mockApi } = await import('./mockApi'); return mockApi<T>(path, init);
+  }
   if (r.status === 401 && retry && t) {
     const nt = await refresh();
     if (nt) return api<T>(path, init, false);
@@ -64,6 +67,22 @@ export async function api<T>(path: string, init: RequestInit = {}, retry = true)
   }
   if (r.status === 204) return undefined as T;
   return (await r.json()) as T;
+}
+
+/** Verifica se há um core real; se não houver, liga o modo simulado. Devolve true se simulado. */
+export async function probeBackend(): Promise<boolean> {
+  if (FORCE_MOCK) return true;
+  if (process.env.NEXT_PUBLIC_ALLOW_MOCK_FALLBACK === 'false') return false;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    const r = await fetch('/health', { signal: ctrl.signal, cache: 'no-store' });
+    clearTimeout(t);
+    if (!r.ok) throw new Error(String(r.status));
+    const j = await r.json();
+    if (j?.status !== 'ok') throw new Error('health inválido');
+    setMock(false); return false;
+  } catch { setMock(true); return true; }
 }
 
 export const login = (email: string, password: string) =>
