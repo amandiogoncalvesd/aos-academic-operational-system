@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
+import { api, isMock } from '@/lib/api';
+import { mockHealth } from '@/lib/mockApi';
 import type { Health, Paginated, Registry, User } from '@/lib/types';
 import { useAuthStore } from '@/stores/authStore';
 import { EventFeed } from '@/components/EventFeed';
@@ -13,7 +14,8 @@ export default function DashboardPage() {
   const [users, setUsers] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch('/health').then((r) => r.json()).then(setHealth).catch(() => {});
+    if (isMock()) setHealth(mockHealth() as Health);
+    else fetch('/health').then((r) => r.json()).then(setHealth).catch(() => setHealth(mockHealth() as Health));
     api<Registry>('/plugins/registry').then(setRegistry).catch(() => {});
     if (user.role === 'admin') api<Paginated<User>>('/users?page_size=1').then((r) => setUsers(r.total)).catch(() => {});
   }, [user.role]);
@@ -29,6 +31,7 @@ export default function DashboardPage() {
       <p className="mt-1 text-sm text-muted">
         O núcleo está {health ? <span className="text-emerald-600">operacional</span> : 'a responder…'}
         {health && <> · v{health.version} · barramento <span className="font-mono">{health.event_bus}</span></>}
+        {isMock() && <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800">modo simulado — sem base de dados</span>}
       </p>
 
       <div className="mt-8 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">

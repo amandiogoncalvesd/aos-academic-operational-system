@@ -3,6 +3,8 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Logo } from '@/components/Logo';
+import { DEV_ACCOUNTS } from '@/lib/devAccounts';
+import { ROLE_LABEL } from '@/lib/constants';
 
 export default function LoginPage() {
   const login = useAuthStore((s) => s.login);
@@ -50,7 +52,18 @@ export default function LoginPage() {
           <input id="password" type="password" autoComplete="current-password" className="field mt-1.5" value={password} onChange={(e) => setPassword(e.target.value)} required />
           {error && <p role="alert" className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
           <button type="submit" disabled={busy} className="btn-primary mt-6 w-full">{busy ? 'A entrar…' : 'Entrar'}</button>
-          <p className="mt-6 text-xs text-faint">Ambiente de desenvolvimento — credenciais pré-preenchidas com a conta de administração inicial.</p>
+          <fieldset className="mt-8 border-t border-line pt-5">
+            <legend className="pr-3 text-xs text-muted">Contas de teste (desenvolvimento)</legend>
+            <div className="mt-2 grid grid-cols-3 gap-1.5">
+              {DEV_ACCOUNTS.map((a) => (
+                <button key={a.email} type="button" onClick={() => { setEmail(a.email); setPassword(a.password); }}
+                  className={`rounded-md border px-2 py-1.5 text-left text-xs ${email === a.email ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink hover:bg-slate-50'}`}>
+                  {ROLE_LABEL[a.role]}
+                </button>
+              ))}
+            </div>
+            <p className="mt-3 font-mono text-[11px] text-faint">{email} · {password}</p>
+          </fieldset>
         </form>
       </section>
     </div>

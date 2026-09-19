@@ -4,6 +4,8 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .config import settings
+from .dev_accounts import DEV_ACCOUNTS
 from .models import Institution, Role, User, UserRole
 from .utils.security import hash_password
 
@@ -37,8 +39,14 @@ async def seed_defaults(db: AsyncSession) -> None:
         if not (await db.execute(select(Role).where(Role.name == name, Role.is_system_role.is_(True)))).scalar_one_or_none():
             db.add(Role(name=name, permissions=perms, is_system_role=True))
 
-    if not (await db.execute(select(User).where(User.email == "admin@gdesigner.school"))).scalar_one_or_none():
+    if settings.ENVIRONMENT in ("development", "test"):
+        for email, first, last, role, pwd in DEV_ACCOUNTS:
+            if not (await db.execute(select(User).where(User.email == email))).scalar_one_or_none():
+                db.add(User(email=email, password_hash=hash_password(pwd), first_name=first, last_name=last,
+                            role=UserRole(role), is_verified=True, institution_id=inst.id))
+        log.info("contas de teste garantidas (%d) — ver docs/contas-de-teste.md", len(DEV_ACCOUNTS))
+    elif not (await db.execute(select(User).where(User.role == UserRole.admin))).scalar_one_or_none():
         db.add(User(email="admin@gdesigner.school", password_hash=hash_password("Admin123!"),
                     first_name="Admin", last_name="AOS", role=UserRole.admin, is_verified=True, institution_id=inst.id))
-        log.info("admin criado: admin@gdesigner.school / Admin123!")
+        log.warning("admin inicial criado — altere a palavra-passe!")
     await db.commit()

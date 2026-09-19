@@ -51,6 +51,9 @@ pnpm install
 pnpm --filter @aos/web dev      # http://localhost:3000  (NEXT_PUBLIC_API_URL → core)
 ```
 
+## Contas de teste
+Ver [`docs/contas-de-teste.md`](docs/contas-de-teste.md) — uma conta por papel; funcionam no Vercel em modo simulado (sem base de dados) e no core (SQLite/Postgres).
+
 ## Testes
 ```bash
 cd services/core && pytest -q

@@ -1,5 +1,12 @@
 import { API_URL } from './constants';
 
+const FORCE_MOCK = process.env.NEXT_PUBLIC_MOCK_API === 'true';
+let mockMode = FORCE_MOCK;
+export const isMock = () => mockMode;
+export function setMock(v: boolean) { mockMode = v; if (typeof window !== 'undefined') localStorage.setItem('aos.mock', String(v)); }
+if (typeof window !== 'undefined' && localStorage.getItem('aos.mock') === 'true') mockMode = true;
+
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
@@ -33,11 +40,19 @@ async function refresh(): Promise<Tokens | null> {
 }
 
 export async function api<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+  if (mockMode) { const { mockApi } = await import('./mockApi'); return mockApi<T>(path, init); }
   const t = tokenStore.get();
   const headers = new Headers(init.headers);
   if (t) headers.set('Authorization', `Bearer ${t.access_token}`);
   if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-  const r = await fetch(`${API_URL}${path}`, { ...init, headers });
+  let r: Response;
+  try { r = await fetch(`${API_URL}${path}`, { ...init, headers }); }
+  catch (e) {
+    // Sem backend acessível (ex.: Vercel sem core) → modo simulado
+    if (!FORCE_MOCK && process.env.NEXT_PUBLIC_ALLOW_MOCK_FALLBACK !== 'false') { setMock(true); const { mockApi } = await import('./mockApi'); return mockApi<T>(path, init); }
+    throw e;
+  }
+  if (r.status >= 502 && r.status <= 504 && process.env.NEXT_PUBLIC_ALLOW_MOCK_FALLBACK !== 'false') { setMock(true); const { mockApi } = await import('./mockApi'); return mockApi<T>(path, init); }
   if (r.status === 401 && retry && t) {
     const nt = await refresh();
     if (nt) return api<T>(path, init, false);
